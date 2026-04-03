@@ -39,8 +39,10 @@ PRINT_INTERVAL = 100
 
 # ------------------------ Константы ------------------------------------------
 c0 = np.float32(299792458.0)
-lambda0 = np.float32(1.55e-6)
-f0 = np.float32(c0 / lambda0)
+
+# lambda0 = np.float32(1.55e-6)
+# f0 = np.float32(c0 / lambda0)
+
 f0 = np.float32(1.9341449e14)
 lambda0 = np.float32(c0 / f0)
 
@@ -118,7 +120,8 @@ wg_t_cz = np.float32(float(Lz) / 2.0)
 wg_t_mask_2d = ((y[:, None] - wg_t_cy) ** 2 + (z[None, :] - wg_t_cz) ** 2 <= wg_t_radius ** 2)
 wg_t_mask = broadcast_yz_mask_to_3d(wg_t_mask_2d)
 
-n_map[wg_t_mask] = n_bg
+# n_map[wg_t_mask] = n_bg
+n_map[wg_t_mask] = n_wg
 contour_mask[wg_t_mask] = 2
 
 # Нижний волновод (цилиндр вдоль X)
@@ -418,7 +421,9 @@ print("=" * 60)
 
 for i, f in enumerate(test_freqs):
     print(f"\n=== Frequency = {f / 1e12:.2f} THz ===")
-    ratios.append(np.median(run_simulation_3d(f, i)))
+    # ratios.append(np.median(run_simulation_3d(f, i)))
+    out = run_simulation_3d(f, i)
+    ratios.append(np.median(out[len(out) // 2:]))
 
 overall_end = time.time()
 print(f"\n✅ Completed {len(test_freqs)} frequencies in {overall_end - overall_start:.2f} s")
