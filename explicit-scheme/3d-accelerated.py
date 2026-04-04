@@ -215,17 +215,17 @@ if HAVE_NUMBA:
                     E_new[i, j, k] = e + dt * w_new
 
     @njit(cache=True, fastmath=True)
-    def energy_ratio(E, strip_mask_f, res_mask_f):
-        s_strip = 0.0
+    def energy_ratio(E, local_mask_f, overall_mask_f):
+        local_energy = 0.0
         s_res = 0.0
         nx, ny, nz = E.shape
         for i in range(nx):
             for j in range(ny):
                 for k in range(nz):
                     e2 = E[i, j, k] * E[i, j, k]
-                    s_strip += e2 * strip_mask_f[i, j, k]
-                    s_res += e2 * res_mask_f[i, j, k]
-        return s_strip / (s_res + 1e-15)
+                    local_energy += e2 * local_mask_f[i, j, k]
+                    s_res += e2 * overall_mask_f[i, j, k]
+        return local_energy / (s_res + 1e-15)
 else:
     def step_fdtd(E, W, v2_map, alpha, dt, idx2, idy2, idz2, E_new, W_new):
         E_new.fill(0.0)
