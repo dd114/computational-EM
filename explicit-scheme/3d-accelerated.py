@@ -38,7 +38,7 @@ VIS_INTERVAL = 25
 PRINT_INTERVAL = 100
 
 # ------------------------ Константы ------------------------------------------
-# c0 = np.float64(299792458.0)
+# c0 = np.float32(299792458.0)
 c0 = float(300e+6)  # для удобства, чтобы не было слишком маленьких чисел
 
 # lambda0 = float(1.55e-6)
@@ -49,11 +49,11 @@ f0 = float(1e+14)
 lambda0 = float(c0 / f0)
 
 # ------------------------ Сетка ----------------------------------------------
-Lx = np.float64(12.0e-6)
-Ly = np.float64(12.0e-6)
-Lz = np.float64(12.0e-6)
+Lx = np.float32(12.0e-6)
+Ly = np.float32(12.0e-6)
+Lz = np.float32(12.0e-6)
 
-dx = np.float64(0.05e-6)
+dx = np.float32(0.05e-6)
 dy = dx
 dz = dx
 
@@ -61,30 +61,30 @@ Nx = int(round(float(Lx / dx))) + 1
 Ny = int(round(float(Ly / dy))) + 1
 Nz = int(round(float(Lz / dz))) + 1
 
-x = (np.arange(Nx, dtype=np.float64) * dx).astype(np.float64)
-y = (np.arange(Ny, dtype=np.float64) * dy).astype(np.float64)
-z = (np.arange(Nz, dtype=np.float64) * dz).astype(np.float64)
+x = (np.arange(Nx, dtype=np.float32) * dx).astype(np.float32)
+y = (np.arange(Ny, dtype=np.float32) * dy).astype(np.float32)
+z = (np.arange(Nz, dtype=np.float32) * dz).astype(np.float32)
 
-n_min = np.float64(1.0)
+n_min = np.float32(1.0)
 v_max = c0 / n_min
-CFL = np.float64(0.35)
-dt = np.float64(CFL * dx / (v_max * math.sqrt(3.0)))
+CFL = np.float32(0.35)
+dt = np.float32(CFL * dx / (v_max * math.sqrt(3.0)))
 
-idx2 = np.float64(1.0 / (dx * dx))
-idy2 = np.float64(1.0 / (dy * dy))
-idz2 = np.float64(1.0 / (dz * dz))
+idx2 = np.float32(1.0 / (dx * dx))
+idy2 = np.float32(1.0 / (dy * dy))
+idz2 = np.float32(1.0 / (dz * dz))
 
 print(f"Сетка: {Nx} x {Ny} x {Nz} = {Nx * Ny * Nz / 1e6:.2f} млн ячеек")
-print(f"Память для одного поля float64: {Nx * Ny * Nz * 4 / 1e6:.2f} МБ")
+print(f"Память для одного поля float32: {Nx * Ny * Nz * 4 / 1e6:.2f} МБ")
 if HAVE_NUMBA:
     print(f"Numba включена, потоков: {get_num_threads()}")
 else:
     print("Numba не найдена, запасной путь будет заметно медленнее")
 
 # ------------------------ PML -------------------------------------------------
-pml_thickness_m = np.float64(0.05 * min(float(Lx), float(Ly), float(Lz)))
+pml_thickness_m = np.float32(0.05 * min(float(Lx), float(Ly), float(Lz)))
 pml_cells = int(round(float(pml_thickness_m / dx)))
-alpha_max = np.float64(0.8 / float(dt))
+alpha_max = np.float32(0.8 / float(dt))
 
 ix = np.arange(Nx, dtype=np.int32)[:, None, None]
 jy = np.arange(Ny, dtype=np.int32)[None, :, None]
@@ -93,18 +93,18 @@ kz = np.arange(Nz, dtype=np.int32)[None, None, :]
 dist_x = np.minimum(ix, Nx - 1 - ix)
 dist_y = np.minimum(jy, Ny - 1 - jy)
 dist_z = np.minimum(kz, Nz - 1 - kz)
-dist_min = np.minimum(np.minimum(dist_x, dist_y), dist_z).astype(np.float64)
+dist_min = np.minimum(np.minimum(dist_x, dist_y), dist_z).astype(np.float32)
 
-alpha = np.zeros((Nx, Ny, Nz), dtype=np.float64)
+alpha = np.zeros((Nx, Ny, Nz), dtype=np.float32)
 mask_pml = dist_min < pml_cells
 alpha[mask_pml] = alpha_max * ((pml_cells - dist_min[mask_pml]) / pml_cells) ** 2
 
 # ------------------------ Геометрия ------------------------------------------
-n_bg = np.float64(1.0)
-n_wg = np.float64(3.5)
-n_res = np.float64(3.5)
+n_bg = np.float32(1.0)
+n_wg = np.float32(3.5)
+n_res = np.float32(3.5)
 
-n_map = np.full((Nx, Ny, Nz), n_bg, dtype=np.float64)
+n_map = np.full((Nx, Ny, Nz), n_bg, dtype=np.float32)
 contour_mask = np.zeros((Nx, Ny, Nz), dtype=np.uint8)
 
 def broadcast_yz_mask_to_3d(mask_yz_2d: np.ndarray) -> np.ndarray:
@@ -116,9 +116,9 @@ def broadcast_yz_mask_to_3d(mask_yz_2d: np.ndarray) -> np.ndarray:
 
 
 # Резонатор (шар)
-res_cx = np.float64(float(Lx) / 2.0)
-res_cy = np.float64(float(Ly) / 2.0)
-res_cz = np.float64(float(Lz) / 2.0)
+res_cx = np.float32(float(Lx) / 2.0)
+res_cy = np.float32(float(Ly) / 2.0)
+res_cz = np.float32(float(Lz) / 2.0)
 
 res_radius = 0.9 * (min(Lx, Ly, Lz) / 2.0 - pml_thickness_m)
 
@@ -134,18 +134,18 @@ n_map[res_mask] = n_res
 contour_mask[res_mask] = 4
 
 # Сферическая оболочка вокруг резонатора
-strip_thickness = np.float64(0.05 * float(res_radius))
+strip_thickness = np.float32(0.05 * float(res_radius))
 strip_mask = res_mask & (r2 >= (res_radius - strip_thickness) ** 2)
 n_map[strip_mask] = n_res
 contour_mask[strip_mask] = 5
 
 
 # Верхний волновод (цилиндр вдоль X)
-wg_t_radius = np.float64(0.25e-6)
-wg_t_overlap = np.float64(0.1e-6)  # чтобы волновод немного заходил в резонатор
+wg_t_radius = np.float32(0.25e-6)
+wg_t_overlap = np.float32(0.1e-6)  # чтобы волновод немного заходил в резонатор
 
-wg_t_cy = np.float64(res_cy + res_radius + wg_t_radius - wg_t_overlap)
-wg_t_cz = np.float64(res_cz)
+wg_t_cy = np.float32(res_cy + res_radius + wg_t_radius - wg_t_overlap)
+wg_t_cz = np.float32(res_cz)
 
 wg_t_mask_2d = ((y[:, None] - wg_t_cy) ** 2 + (z[None, :] - wg_t_cz) ** 2 <= wg_t_radius ** 2)
 wg_t_mask = broadcast_yz_mask_to_3d(wg_t_mask_2d)
@@ -155,11 +155,11 @@ wg_t_mask = broadcast_yz_mask_to_3d(wg_t_mask_2d)
 contour_mask[wg_t_mask] = 2
 
 # Нижний волновод (цилиндр вдоль X)
-wg_b_radius = np.float64(0.25e-6)
-wg_b_overlap = np.float64(0.1e-6)  # чтобы волновод немного заходил в резонатор
+wg_b_radius = np.float32(0.25e-6)
+wg_b_overlap = np.float32(0.1e-6)  # чтобы волновод немного заходил в резонатор
 
-wg_b_cy = np.float64(res_cy - res_radius - wg_b_radius + wg_b_overlap)
-wg_b_cz = np.float64(res_cz)
+wg_b_cy = np.float32(res_cy - res_radius - wg_b_radius + wg_b_overlap)
+wg_b_cz = np.float32(res_cz)
 
 wg_b_mask_2d = ((y[:, None] - wg_b_cy) ** 2 + (z[None, :] - wg_b_cz) ** 2 <= wg_b_radius ** 2)
 wg_b_mask = broadcast_yz_mask_to_3d(wg_b_mask_2d)
@@ -171,7 +171,7 @@ contour_mask[wg_b_mask] = 3
 contour_mask[mask_pml] = 1
 
 v2_map_base = (c0 / n_map) ** 2
-v2_bg = np.float64((c0 / n_bg) ** 2)
+v2_bg = np.float32((c0 / n_bg) ** 2)
 
 # ------------------------ Начальное поле -------------------------------------
 def init_field_directed_3d(freq, x0=None, A=0.7, theta_deg=0.0):
@@ -181,24 +181,24 @@ def init_field_directed_3d(freq, x0=None, A=0.7, theta_deg=0.0):
     if x0 is None:
         x0 = pml_thickness_m
 
-    lam = c0 / np.float64(freq)
+    lam = c0 / np.float32(freq)
     print(f"длина волны для начального поля: {lam * 1e6:.2f} µm")
     
-    k0 = np.float64(2.0 * np.pi / lam)
-    theta = np.deg2rad(np.float64(theta_deg))
+    k0 = np.float32(2.0 * np.pi / lam)
+    theta = np.deg2rad(np.float32(theta_deg))
     kx = k0 * np.cos(theta)
     ky = k0 * np.sin(theta)
 
-    Xc = x[:, None, None] - np.float64(x0)
+    Xc = x[:, None, None] - np.float32(x0)
     Yc = y[None, :, None] - wg_b_cy
     Zc = z[None, None, :] - wg_b_cz
 
-    envelope = np.exp(-0.5 * ((Yc / np.float64(0.5e-6)) ** 2 + (Zc / np.float64(0.5e-6)) ** 2))
+    envelope = np.exp(-0.5 * ((Yc / np.float32(0.5e-6)) ** 2 + (Zc / np.float32(0.5e-6)) ** 2))
     phase = kx * Xc + ky * Yc
-    E_init = np.float64(A) * envelope * np.cos(phase)
+    E_init = np.float32(A) * envelope * np.cos(phase)
 
-    source_window = x[:, None, None] < np.float64(0.45 * float(Lx))
-    return np.where(source_window & wg_b_mask, E_init, np.float64(0.0)).astype(np.float64, copy=False)
+    source_window = x[:, None, None] < np.float32(0.45 * float(Lx))
+    return np.where(source_window & wg_b_mask, E_init, np.float32(0.0)).astype(np.float32, copy=False)
 
 # ------------------------ Шаг схемы ------------------------------------------
 if HAVE_NUMBA:
@@ -258,7 +258,7 @@ if USE_VISUALIZATION:
     slice_x = Nx // 2
 
     im1 = axes[0].imshow(
-        np.zeros((Ny, Nx), dtype=np.float64).T,
+        np.zeros((Ny, Nx), dtype=np.float32).T,
         origin="lower",
         extent=[0, float(Lx) * 1e6, 0, float(Ly) * 1e6],
         cmap="RdBu_r",
@@ -282,7 +282,7 @@ if USE_VISUALIZATION:
     axes[0].contour(x_um, y_um, (contour_mask[:, :, slice_z] == 5).T, levels=[0.5], colors="green", linewidths=1.8)
 
     im2 = axes[1].imshow(
-        np.zeros((Nz, Nx), dtype=np.float64).T,
+        np.zeros((Nz, Nx), dtype=np.float32).T,
         origin="lower",
         extent=[0, float(Lx) * 1e6, 0, float(Lz) * 1e6],
         cmap="RdBu_r",
@@ -302,7 +302,7 @@ if USE_VISUALIZATION:
     axes[1].contour(x_um, z_um, (contour_mask[:, slice_y, :] == 5).T, levels=[0.5], colors="green", linewidths=1.8)
 
     im3 = axes[2].imshow(
-        np.zeros((Nz, Ny), dtype=np.float64).T,
+        np.zeros((Nz, Ny), dtype=np.float32).T,
         origin="lower",
         extent=[0, float(Ly) * 1e6, 0, float(Lz) * 1e6],
         cmap="RdBu_r",
@@ -341,13 +341,13 @@ test_freqs = freqs[:]
 nsteps_measure = 7500
 # switch_step = 2500
 
-strip_mask_f = strip_mask.astype(np.float64)
-res_mask_f = res_mask.astype(np.float64)
+strip_mask_f = strip_mask.astype(np.float32)
+res_mask_f = res_mask.astype(np.float32)
 
 # ------------------------ Симуляция ------------------------------------------
 def run_simulation_3d(freq, i):
-    E = np.ascontiguousarray(init_field_directed_3d(freq), dtype=np.float64)
-    W = np.zeros_like(E, dtype=np.float64)
+    E = np.ascontiguousarray(init_field_directed_3d(freq), dtype=np.float32)
+    W = np.zeros_like(E, dtype=np.float32)
 
     E_new = np.empty_like(E)
     W_new = np.empty_like(W)
@@ -356,7 +356,7 @@ def run_simulation_3d(freq, i):
     ratio = 0.0
     mem_gb = E.nbytes / 1e9
 
-    ratios = np.empty(nsteps_measure // RATIO_INTERVAL + 1, dtype=np.float64)
+    ratios = np.empty(nsteps_measure // RATIO_INTERVAL + 1, dtype=np.float32)
 
     for n in range(nsteps_measure):
         t = n * float(dt)
