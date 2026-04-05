@@ -150,7 +150,7 @@ wg_t_cz = np.float64(res_cz)
 wg_t_mask_2d = ((y[:, None] - wg_t_cy) ** 2 + (z[None, :] - wg_t_cz) ** 2 <= wg_t_radius ** 2)
 wg_t_mask = broadcast_yz_mask_to_3d(wg_t_mask_2d)
 
-n_map[wg_t_mask] = n_bg
+# n_map[wg_t_mask] = n_bg
 # n_map[wg_t_mask] = n_wg
 contour_mask[wg_t_mask] = 2
 
@@ -332,8 +332,8 @@ else:
     fig = axes = im1 = im2 = im3 = time_text = None
 
 # ------------------------ Параметры ------------------------------------------
-# freqs = [i * float(f0) / 10 for i in range(10, 202, 20)] 
-freqs = [i * float(f0) / 10 for i in range(10, 2011, 200)] # quick test
+freqs = [i * float(f0) / 2 for i in range(1, 43, 1)] # длина волны от 2λ0 до λ0/20 что примерно равно 3 * dx
+# freqs = [i * float(f0) / 2 for i in range(1, 43, 5)] # quick test
 
 # test_freqs = freqs[-3:]   # для теста; замените на freqs, если нужен полный прогон
 test_freqs = freqs[:]
