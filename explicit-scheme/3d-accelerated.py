@@ -142,7 +142,7 @@ contour_mask[strip_mask] = 5
 
 # Верхний волновод (цилиндр вдоль X)
 wg_t_radius = np.float32(0.25e-6)
-wg_t_overlap = np.float32(0.1e-6)  # чтобы волновод немного заходил в резонатор
+wg_t_overlap = np.float32(0.15e-6)  # чтобы волновод немного заходил в резонатор
 
 wg_t_cy = np.float32(res_cy + res_radius + wg_t_radius - wg_t_overlap)
 wg_t_cz = np.float32(res_cz)
@@ -151,7 +151,7 @@ wg_t_mask_2d = ((y[:, None] - wg_t_cy) ** 2 + (z[None, :] - wg_t_cz) ** 2 <= wg_
 wg_t_mask = broadcast_yz_mask_to_3d(wg_t_mask_2d)
 
 # n_map[wg_t_mask] = n_bg
-# n_map[wg_t_mask] = n_wg
+n_map[wg_t_mask] = n_wg
 contour_mask[wg_t_mask] = 2
 
 # Нижний волновод (цилиндр вдоль X)
@@ -375,7 +375,7 @@ def run_simulation_3d(freq, i, nsteps_measure=7500, v2_map=v2_map):
 
         # Отношение энергий
         if n % RATIO_INTERVAL == 0:
-            ratio = float(energy_ratio(E, strip_mask_f, res_mask_f))
+            ratio = float(energy_ratio(E, wg_t_mask_f, wg_t_res_mask_f))
             # if ratio > max_ratio:
             #     max_ratio = ratio
             ratios[n // RATIO_INTERVAL] = ratio
@@ -414,11 +414,15 @@ freqs = [i * float(f0) / 2 for i in range(1, 41, 1)] # длина волны о�
 # test_freqs = freqs[-3:]   # для теста; замените на freqs, если нужен полный прогон
 test_freqs = freqs[:]
 
-nsteps_measure = 7500
+# nsteps_measure = 7500
+nsteps_measure = 12000
 # switch_step = 2500
 
 strip_mask_f = strip_mask.astype(np.float32)
 res_mask_f = res_mask.astype(np.float32)
+
+wg_t_mask_f = wg_t_mask.astype(np.float32)
+wg_t_res_mask_f = (wg_t_mask | res_mask).astype(np.float32)
 
 ratios = []
 
@@ -431,7 +435,7 @@ for i, f in enumerate(test_freqs):
     print(f"\n=== Frequency = {f / 1e12:.2f} THz ===")
     # ratios.append(np.median(run_simulation_3d(f, i)))
     out = run_simulation_3d(f, i, nsteps_measure=nsteps_measure, v2_map=v2_map)
-    ratios.append(np.median(out[len(out) // 4:]))
+    ratios.append(np.max(out[:]))
 
 overall_end = time.time()
 print(f"\n✅ Completed {len(test_freqs)} frequencies in {overall_end - overall_start:.2f} s")
@@ -442,7 +446,7 @@ plt.figure(figsize=(8, 5))
 
 plt.plot(np.array(test_freqs) / 1e12, ratios, "o-", linewidth=2, markersize=8)
 plt.xlabel("Frequency (THz)")
-plt.ylabel("Max ratio E_strip / E_resonator")
+plt.ylabel("Ratio E_strip / E_resonator")
 plt.title("Dependence of energy ratio on frequency (3D)")
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
