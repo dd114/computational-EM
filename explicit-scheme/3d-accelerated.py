@@ -336,7 +336,7 @@ freqs = [i * float(f0) for i in range(1, 121, 2)]
 test_freqs = freqs[:]
 
 nsteps_measure = 7500
-switch_step = 2500
+# switch_step = 2500
 
 strip_mask_f = strip_mask.astype(np.float32)
 res_mask_f = res_mask.astype(np.float32)
@@ -379,8 +379,8 @@ def run_simulation_3d(freq, i):
         W, W_new = W_new, W
 
         # Закрытие входа нижнего волновода
-        if n == switch_step:
-            v2_map[wg_b_mask] = v2_bg
+        # if n == switch_step:
+        #     v2_map[wg_b_mask] = v2_bg
 
         # Отношение энергий
         if n % RATIO_INTERVAL == 0:
