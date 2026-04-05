@@ -182,6 +182,8 @@ def init_field_directed_3d(freq, x0=None, A=0.7, theta_deg=0.0):
         x0 = pml_thickness_m
 
     lam = c0 / np.float32(freq)
+    print(f"длина волны для начального поля: {lam * 1e6:.2f} µm")
+    
     k0 = np.float32(2.0 * np.pi / lam)
     theta = np.deg2rad(np.float32(theta_deg))
     kx = k0 * np.cos(theta)
@@ -330,8 +332,8 @@ else:
     fig = axes = im1 = im2 = im3 = time_text = None
 
 # ------------------------ Параметры ------------------------------------------
-# freqs = [i * float(f0) for i in range(1, 122, 10)] # quick test
-freqs = [i * float(f0) for i in range(1, 121, 2)]
+freqs = [i * float(f0) / 10 for i in range(10, 202, 20)] # quick test
+# freqs = [i * float(f0) for i in range(1, 121, 2)]
 
 # test_freqs = freqs[-3:]   # для теста; замените на freqs, если нужен полный прогон
 test_freqs = freqs[:]
