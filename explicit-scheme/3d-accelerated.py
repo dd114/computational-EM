@@ -38,13 +38,15 @@ VIS_INTERVAL = 25
 PRINT_INTERVAL = 100
 
 # ------------------------ Константы ------------------------------------------
-c0 = np.float32(299792458.0)
+# c0 = np.float64(299792458.0)
+c0 = float(300e+6)  # для удобства, чтобы не было слишком маленьких чисел
 
 # lambda0 = np.float32(1.55e-6)
 # f0 = np.float32(c0 / lambda0)
 
-f0 = np.float32(1.9341449e14)
-lambda0 = np.float32(c0 / f0)
+# f0 = np.float64(1.9341449e14)
+f0 = float(1e+14) 
+lambda0 = float(c0 / f0)
 
 # ------------------------ Сетка ----------------------------------------------
 Lx = np.float32(12.0e-6)
@@ -327,7 +329,9 @@ else:
     fig = axes = im1 = im2 = im3 = time_text = None
 
 # ------------------------ Параметры ------------------------------------------
-freqs = [i * float(f0) / 10.0 for i in range(10, 111, 2)]
+# freqs = [i * float(f0) for i in range(1, 122, 10)] # quick test
+freqs = [i * float(f0) for i in range(1, 121, 2)]
+
 # test_freqs = freqs[-3:]   # для теста; замените на freqs, если нужен полный прогон
 test_freqs = freqs[:]
 
@@ -423,7 +427,7 @@ for i, f in enumerate(test_freqs):
     print(f"\n=== Frequency = {f / 1e12:.2f} THz ===")
     # ratios.append(np.median(run_simulation_3d(f, i)))
     out = run_simulation_3d(f, i)
-    ratios.append(np.median(out[len(out) // 2:]))
+    ratios.append(np.median(out[len(out) // 4:]))
 
 overall_end = time.time()
 print(f"\n✅ Completed {len(test_freqs)} frequencies in {overall_end - overall_start:.2f} s")
@@ -431,6 +435,7 @@ print(f"\n✅ Completed {len(test_freqs)} frequencies in {overall_end - overall_
 # ------------------------ Финальный график -----------------------------------
 plt.ioff()
 plt.figure(figsize=(8, 5))
+
 plt.plot(np.array(test_freqs) / 1e12, ratios, "o-", linewidth=2, markersize=8)
 plt.xlabel("Frequency (THz)")
 plt.ylabel("Max ratio E_strip / E_resonator")
