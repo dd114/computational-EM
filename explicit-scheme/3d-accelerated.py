@@ -332,8 +332,8 @@ else:
     fig = axes = im1 = im2 = im3 = time_text = None
 
 # ------------------------ Параметры ------------------------------------------
-freqs = [i * float(f0) / 10 for i in range(10, 202, 20)] # quick test
-# freqs = [i * float(f0) for i in range(1, 121, 2)]
+# freqs = [i * float(f0) / 10 for i in range(10, 202, 20)] 
+freqs = [i * float(f0) / 10 for i in range(10, 2011, 200)] # quick test
 
 # test_freqs = freqs[-3:]   # для теста; замените на freqs, если нужен полный прогон
 test_freqs = freqs[:]
