@@ -38,13 +38,13 @@ VIS_INTERVAL = 25
 PRINT_INTERVAL = 100
 
 # ------------------------ Константы ------------------------------------------
-# c0 = np.float64(299792458.0)
+# c0 = np.float32(299792458.0)
 c0 = float(300e+6)  # для удобства, чтобы не было слишком маленьких чисел
 
-# lambda0 = np.float32(1.55e-6)
-# f0 = np.float32(c0 / lambda0)
+# lambda0 = float(1.55e-6)
+# f0 = float(c0 / lambda0)
 
-# f0 = np.float64(1.9341449e14)
+# f0 = 1.9341449e14
 f0 = float(1e+14) 
 lambda0 = float(c0 / f0)
 
@@ -150,8 +150,8 @@ wg_t_cz = np.float32(res_cz)
 wg_t_mask_2d = ((y[:, None] - wg_t_cy) ** 2 + (z[None, :] - wg_t_cz) ** 2 <= wg_t_radius ** 2)
 wg_t_mask = broadcast_yz_mask_to_3d(wg_t_mask_2d)
 
-# n_map[wg_t_mask] = n_bg
-n_map[wg_t_mask] = n_wg
+n_map[wg_t_mask] = n_bg
+# n_map[wg_t_mask] = n_wg
 contour_mask[wg_t_mask] = 2
 
 # Нижний волновод (цилиндр вдоль X)
