@@ -435,7 +435,10 @@ for i, f in enumerate(test_freqs):
     print(f"\n=== Frequency = {f / 1e12:.2f} THz ===")
     # ratios.append(np.median(run_simulation_3d(f, i)))
     out = run_simulation_3d(f, i, nsteps_measure=nsteps_measure, v2_map=v2_map)
-    ratios.append(np.max(out[:]))
+    
+    sorted_out = np.sort(out)
+    threshold_index = int(0.95 * len(sorted_out))
+    ratios.append(np.median(sorted_out[threshold_index:]))  # усредняем, чтобы сгладить возможные выбросы
 
 overall_end = time.time()
 print(f"\n✅ Completed {len(test_freqs)} frequencies in {overall_end - overall_start:.2f} s")
