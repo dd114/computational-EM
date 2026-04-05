@@ -449,7 +449,7 @@ plt.figure(figsize=(8, 5))
 
 plt.plot(np.array(test_freqs) / 1e12, ratios, "o-", linewidth=2, markersize=8)
 plt.xlabel("Frequency (THz)")
-plt.ylabel("Ratio E_strip / E_resonator")
+plt.ylabel("Ratio E_wg / E_total")
 plt.title("Dependence of energy ratio on frequency (3D)")
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
