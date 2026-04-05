@@ -114,42 +114,15 @@ def broadcast_yz_mask_to_3d(mask_yz_2d: np.ndarray) -> np.ndarray:
     """
     return np.broadcast_to(mask_yz_2d[None, :, :], (Nx, Ny, Nz)).copy()
 
-# Верхний волновод (цилиндр вдоль X)
-wg_t_radius = np.float32(0.25e-6)
-wg_t_cy = np.float32(Ly - pml_thickness_m - 2.0 * wg_t_radius)
-wg_t_cz = np.float32(float(Lz) / 2.0)
-
-wg_t_mask_2d = ((y[:, None] - wg_t_cy) ** 2 + (z[None, :] - wg_t_cz) ** 2 <= wg_t_radius ** 2)
-wg_t_mask = broadcast_yz_mask_to_3d(wg_t_mask_2d)
-
-# n_map[wg_t_mask] = n_bg
-n_map[wg_t_mask] = n_wg
-contour_mask[wg_t_mask] = 2
-
-# Нижний волновод (цилиндр вдоль X)
-wg_b_radius = np.float32(0.25e-6)
-wg_b_cy = np.float32(pml_thickness_m + 2.0 * wg_b_radius)
-wg_b_cz = wg_t_cz
-
-wg_b_mask_2d = ((y[:, None] - wg_b_cy) ** 2 + (z[None, :] - wg_b_cz) ** 2 <= wg_b_radius ** 2)
-wg_b_mask = broadcast_yz_mask_to_3d(wg_b_mask_2d)
-
-n_map[wg_b_mask] = n_wg
-contour_mask[wg_b_mask] = 3
 
 # Резонатор (шар)
 res_cx = np.float32(float(Lx) / 2.0)
 res_cy = np.float32(float(Ly) / 2.0)
 res_cz = np.float32(float(Lz) / 2.0)
 
-overlap_b = np.float32(0.2e-6)
-res_radius = np.float32(
-    min(
-        float(res_cx - pml_thickness_m),
-        float(res_cy - (wg_b_cy + wg_b_radius) + overlap_b),
-        float(Lz / 2.0 - pml_thickness_m),
-    )
-)
+res_radius = 0.9 * (min(Lx, Ly, Lz) / 2.0 - pml_thickness_m)
+
+# print(f"Радиус резонтора был выбран как")
 
 dx2 = (x[:, None, None] - res_cx) ** 2
 dy2 = (y[None, :, None] - res_cy) ** 2
@@ -165,6 +138,34 @@ strip_thickness = np.float32(0.05 * float(res_radius))
 strip_mask = res_mask & (r2 >= (res_radius - strip_thickness) ** 2)
 n_map[strip_mask] = n_res
 contour_mask[strip_mask] = 5
+
+
+# Верхний волновод (цилиндр вдоль X)
+wg_t_radius = np.float32(0.25e-6)
+wg_t_overlap = np.float32(0.1e-6)  # чтобы волновод немного заходил в резонатор
+
+wg_t_cy = np.float32(res_cy + res_radius + wg_t_radius - wg_t_overlap)
+wg_t_cz = np.float32(res_cz)
+
+wg_t_mask_2d = ((y[:, None] - wg_t_cy) ** 2 + (z[None, :] - wg_t_cz) ** 2 <= wg_t_radius ** 2)
+wg_t_mask = broadcast_yz_mask_to_3d(wg_t_mask_2d)
+
+# n_map[wg_t_mask] = n_bg
+n_map[wg_t_mask] = n_wg
+contour_mask[wg_t_mask] = 2
+
+# Нижний волновод (цилиндр вдоль X)
+wg_b_radius = np.float32(0.25e-6)
+wg_b_overlap = np.float32(0.1e-6)  # чтобы волновод немного заходил в резонатор
+
+wg_b_cy = np.float32(res_cy - res_radius - wg_b_radius + wg_b_overlap)
+wg_b_cz = np.float32(res_cz)
+
+wg_b_mask_2d = ((y[:, None] - wg_b_cy) ** 2 + (z[None, :] - wg_b_cz) ** 2 <= wg_b_radius ** 2)
+wg_b_mask = broadcast_yz_mask_to_3d(wg_b_mask_2d)
+
+n_map[wg_b_mask] = n_wg
+contour_mask[wg_b_mask] = 3
 
 # PML
 contour_mask[mask_pml] = 1
