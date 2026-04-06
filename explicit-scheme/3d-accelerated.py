@@ -332,7 +332,7 @@ else:
     fig = axes = im1 = im2 = im3 = time_text = None
 
 # ------------------------ Параметры ------------------------------------------
-freqs = [i * float(f0) / 2 for i in range(1, 43, 1)] # длина волны от 2λ0 до λ0/20 что примерно равно 3 * dx
+freqs = [i * float(f0) / 2 for i in range(1, 41, 1)] # длина волны от 2λ0 до λ0/20 что примерно равно 3 * dx
 # freqs = [i * float(f0) / 2 for i in range(1, 43, 5)] # quick test
 
 # test_freqs = freqs[-3:]   # для теста; замените на freqs, если нужен полный прогон
@@ -441,7 +441,7 @@ plt.figure(figsize=(8, 5))
 
 plt.plot(np.array(test_freqs) / 1e12, ratios, "o-", linewidth=2, markersize=8)
 plt.xlabel("Frequency (THz)")
-plt.ylabel("Max ratio E_strip / E_resonator")
+plt.ylabel("Ratio E_strip / E_resonator")
 plt.title("Dependence of energy ratio on frequency (3D)")
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
