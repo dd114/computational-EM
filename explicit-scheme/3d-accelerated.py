@@ -170,7 +170,7 @@ contour_mask[wg_b_mask] = 3
 # PML
 contour_mask[mask_pml] = 1
 
-v2_map_base = (c0 / n_map) ** 2
+v2_map = (c0 / n_map) ** 2
 v2_bg = np.float32((c0 / n_bg) ** 2)
 
 # ------------------------ Начальное поле -------------------------------------
@@ -199,54 +199,6 @@ def init_field_directed_3d(freq, x0=None, A=0.7, theta_deg=0.0):
 
     source_window = x[:, None, None] < np.float32(0.45 * float(Lx))
     return np.where(source_window & wg_b_mask, E_init, np.float32(0.0)).astype(np.float32, copy=False)
-
-# ------------------------ Шаг схемы ------------------------------------------
-if HAVE_NUMBA:
-    @njit(cache=True, fastmath=True, parallel=True)
-    def step_fdtd(E, W, v2_map, alpha, dt, idx2, idy2, idz2, E_new, W_new):
-        nx, ny, nz = E.shape
-        for i in prange(1, nx - 1):
-            for j in range(1, ny - 1):
-                for k in range(1, nz - 1):
-                    e = E[i, j, k]
-                    lap = (
-                        (E[i + 1, j, k] + E[i - 1, j, k] - 2.0 * e) * idx2
-                        + (E[i, j + 1, k] + E[i, j - 1, k] - 2.0 * e) * idy2
-                        + (E[i, j, k + 1] + E[i, j, k - 1] - 2.0 * e) * idz2
-                    )
-                    w_old = W[i, j, k]
-                    w_new = w_old + dt * (v2_map[i, j, k] * lap - alpha[i, j, k] * w_old)
-                    W_new[i, j, k] = w_new
-                    E_new[i, j, k] = e + dt * w_new
-
-    @njit(cache=True, fastmath=True)
-    def energy_ratio(E, local_mask_f, overall_mask_f):
-        local_energy = 0.0
-        s_res = 0.0
-        nx, ny, nz = E.shape
-        for i in range(nx):
-            for j in range(ny):
-                for k in range(nz):
-                    e2 = E[i, j, k] * E[i, j, k]
-                    local_energy += e2 * local_mask_f[i, j, k]
-                    s_res += e2 * overall_mask_f[i, j, k]
-        return local_energy / (s_res + 1e-15)
-else:
-    def step_fdtd(E, W, v2_map, alpha, dt, idx2, idy2, idz2, E_new, W_new):
-        E_new.fill(0.0)
-        W_new.fill(0.0)
-        lap = np.zeros_like(E)
-        lap[1:-1, 1:-1, 1:-1] = (
-            (E[2:, 1:-1, 1:-1] + E[:-2, 1:-1, 1:-1] - 2.0 * E[1:-1, 1:-1, 1:-1]) * idx2
-            + (E[1:-1, 2:, 1:-1] + E[1:-1, :-2, 1:-1] - 2.0 * E[1:-1, 1:-1, 1:-1]) * idy2
-            + (E[1:-1, 1:-1, 2:] + E[1:-1, 1:-1, :-2] - 2.0 * E[1:-1, 1:-1, 1:-1]) * idz2
-        )
-        W_new[:] = W + dt * (v2_map * lap - alpha * W)
-        E_new[:] = E + dt * W_new
-
-    def energy_ratio(E, strip_mask_f, res_mask_f):
-        e2 = E * E
-        return float(np.sum(e2 * strip_mask_f) / (np.sum(e2 * res_mask_f) + 1e-15))
 
 # ------------------------ Визуализация ----------------------------------------
 if USE_VISUALIZATION:
@@ -331,28 +283,64 @@ else:
     slice_x = Nx // 2
     fig = axes = im1 = im2 = im3 = time_text = None
 
-# ------------------------ Параметры ------------------------------------------
-freqs = [i * float(f0) / 2 for i in range(1, 43, 1)] # длина волны от 2λ0 до λ0/20 что примерно равно 3 * dx
-# freqs = [i * float(f0) / 2 for i in range(1, 43, 5)] # quick test
+# ------------------------ Шаг схемы ------------------------------------------
+if HAVE_NUMBA:
+    @njit(cache=True, fastmath=True, parallel=True)
+    def step_fdtd(E, W, v2_map, alpha, dt, idx2, idy2, idz2, E_new, W_new):
+        nx, ny, nz = E.shape
+        for i in prange(1, nx - 1):
+            for j in range(1, ny - 1):
+                for k in range(1, nz - 1):
+                    e = E[i, j, k]
+                    lap = (
+                        (E[i + 1, j, k] + E[i - 1, j, k] - 2.0 * e) * idx2
+                        + (E[i, j + 1, k] + E[i, j - 1, k] - 2.0 * e) * idy2
+                        + (E[i, j, k + 1] + E[i, j, k - 1] - 2.0 * e) * idz2
+                    )
+                    w_old = W[i, j, k]
+                    w_new = w_old + dt * (v2_map[i, j, k] * lap - alpha[i, j, k] * w_old)
+                    W_new[i, j, k] = w_new
+                    E_new[i, j, k] = e + dt * w_new
 
-# test_freqs = freqs[-3:]   # для теста; замените на freqs, если нужен полный прогон
-test_freqs = freqs[:]
+    @njit(cache=True, fastmath=True)
+    def energy_ratio(E, local_mask_f, overall_mask_f):
+        local_energy = 0.0
+        s_res = 0.0
+        nx, ny, nz = E.shape
+        for i in range(nx):
+            for j in range(ny):
+                for k in range(nz):
+                    e2 = E[i, j, k] * E[i, j, k]
+                    local_energy += e2 * local_mask_f[i, j, k]
+                    s_res += e2 * overall_mask_f[i, j, k]
+        return local_energy / (s_res + 1e-15)
+else:
+    def step_fdtd(E, W, v2_map, alpha, dt, idx2, idy2, idz2, E_new, W_new):
+        E_new.fill(0.0)
+        W_new.fill(0.0)
+        lap = np.zeros_like(E)
+        lap[1:-1, 1:-1, 1:-1] = (
+            (E[2:, 1:-1, 1:-1] + E[:-2, 1:-1, 1:-1] - 2.0 * E[1:-1, 1:-1, 1:-1]) * idx2
+            + (E[1:-1, 2:, 1:-1] + E[1:-1, :-2, 1:-1] - 2.0 * E[1:-1, 1:-1, 1:-1]) * idy2
+            + (E[1:-1, 1:-1, 2:] + E[1:-1, 1:-1, :-2] - 2.0 * E[1:-1, 1:-1, 1:-1]) * idz2
+        )
+        W_new[:] = W + dt * (v2_map * lap - alpha * W)
+        E_new[:] = E + dt * W_new
 
-nsteps_measure = 7500
-# switch_step = 2500
+    def energy_ratio(E, strip_mask_f, res_mask_f):
+        e2 = E * E
+        return float(np.sum(e2 * strip_mask_f) / (np.sum(e2 * res_mask_f) + 1e-15))
 
-strip_mask_f = strip_mask.astype(np.float32)
-res_mask_f = res_mask.astype(np.float32)
 
 # ------------------------ Симуляция ------------------------------------------
-def run_simulation_3d(freq, i):
+def run_simulation_3d(freq, i, nsteps_measure=7500, v2_map=v2_map):
     E = np.ascontiguousarray(init_field_directed_3d(freq), dtype=np.float32)
     W = np.zeros_like(E, dtype=np.float32)
 
     E_new = np.empty_like(E)
     W_new = np.empty_like(W)
 
-    v2_map = v2_map_base.copy()
+    # v2_map = v2_map_base.copy()
     ratio = 0.0
     mem_gb = E.nbytes / 1e9
 
@@ -419,17 +407,30 @@ def run_simulation_3d(freq, i):
     return ratios
 
 # ------------------------ Главный запуск -------------------------------------
-overall_start = time.time()
+# ------------------------ Параметры ------------------------------------------
+freqs = [i * float(f0) / 2 for i in range(1, 41, 1)] # длина волны от 2λ0 до λ0/20 что примерно равно 3 * dx
+# freqs = [i * float(f0) / 2 for i in range(1, 41, 5)] # quick test
+
+# test_freqs = freqs[-3:]   # для теста; замените на freqs, если нужен полный прогон
+test_freqs = freqs[:]
+
+nsteps_measure = 7500
+# switch_step = 2500
+
+strip_mask_f = strip_mask.astype(np.float32)
+res_mask_f = res_mask.astype(np.float32)
+
 ratios = []
 
 print("\n" + "=" * 60)
 print("ЗАПУСК 3D FDTD СИМУЛЯЦИИ")
 print("=" * 60)
 
+overall_start = time.time()
 for i, f in enumerate(test_freqs):
     print(f"\n=== Frequency = {f / 1e12:.2f} THz ===")
     # ratios.append(np.median(run_simulation_3d(f, i)))
-    out = run_simulation_3d(f, i)
+    out = run_simulation_3d(f, i, nsteps_measure=nsteps_measure, v2_map=v2_map)
     ratios.append(np.median(out[len(out) // 4:]))
 
 overall_end = time.time()
