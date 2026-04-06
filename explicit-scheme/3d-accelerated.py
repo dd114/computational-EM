@@ -173,6 +173,9 @@ contour_mask[mask_pml] = 1
 v2_map = (c0 / n_map) ** 2
 v2_bg = np.float32((c0 / n_bg) ** 2)
 
+# Вспомогательная маска
+bg_mask = ~(wg_t_mask | wg_b_mask | res_mask)
+
 # ------------------------ Начальное поле -------------------------------------
 def init_field_directed_3d(freq, x0=None, A=0.7, theta_deg=0.0):
     """
@@ -382,7 +385,7 @@ def run_simulation_3d(freq, i, nsteps_measure=7500, v2_map=v2_map):
 
         if n % PRINT_INTERVAL == 0:
             print(
-                f"[i={i + 1}/{len(test_freqs)} f={freq / 1e12:.2f} THz] "
+                f"[i={i + 1}/{len(my_in)} f={freq / 1e12:.2f} THz] "
                 f"step {n}/{nsteps_measure} ratio={ratio:.6e} mem={mem_gb:.2f} GB"
             )
 
@@ -411,8 +414,11 @@ def run_simulation_3d(freq, i, nsteps_measure=7500, v2_map=v2_map):
 freqs = [i * float(f0) / 2 for i in range(1, 41, 1)] # длина волны от 2λ0 до λ0/20 что примерно равно 3 * dx
 # freqs = [i * float(f0) / 2 for i in range(1, 41, 5)] # quick test
 
-# test_freqs = freqs[-3:]   # для теста; замените на freqs, если нужен полный прогон
-test_freqs = freqs[:]
+# my_in = freqs[-3:]   # для теста; замените на freqs, если нужен полный прогон
+# my_in = freqs[:]
+
+# my_in = np.linspace(n_bg, n_res + 0.5, 20, endpoint=True, dtype=np.float32)
+my_in = np.linspace(n_bg, n_res + 0.5, 5, endpoint=True, dtype=np.float32) # quick test
 
 # nsteps_measure = 7500
 nsteps_measure = 12000
@@ -424,6 +430,7 @@ res_mask_f = res_mask.astype(np.float32)
 wg_t_mask_f = wg_t_mask.astype(np.float32)
 wg_t_res_mask_f = (wg_t_mask | res_mask).astype(np.float32)
 
+
 ratios = []
 
 print("\n" + "=" * 60)
@@ -431,23 +438,26 @@ print("ЗАПУСК 3D FDTD СИМУЛЯЦИИ")
 print("=" * 60)
 
 overall_start = time.time()
-for i, f in enumerate(test_freqs):
-    print(f"\n=== Frequency = {f / 1e12:.2f} THz ===")
-    # ratios.append(np.median(run_simulation_3d(f, i)))
-    out = run_simulation_3d(f, i, nsteps_measure=nsteps_measure, v2_map=v2_map)
+for i, current_n in enumerate(my_in):
+    print(f"\n=== Refraction bg = {current_n:.2f} ===")
+
+    n_map[bg_mask] = current_n
+    v2_map = (c0 / n_map) ** 2
+
+    out = run_simulation_3d(freqs[750//50 - 1], i, nsteps_measure=nsteps_measure, v2_map=v2_map)
     
     sorted_out = np.sort(out)
     threshold_index = int(0.95 * len(sorted_out))
     ratios.append(np.median(sorted_out[threshold_index:]))  # усредняем, чтобы сгладить возможные выбросы
 
 overall_end = time.time()
-print(f"\n✅ Completed {len(test_freqs)} frequencies in {overall_end - overall_start:.2f} s")
+print(f"\n✅ Completed {len(my_in)} frequencies in {overall_end - overall_start:.2f} s")
 
 # ------------------------ Финальный график -----------------------------------
 plt.ioff()
 plt.figure(figsize=(8, 5))
 
-plt.plot(np.array(test_freqs) / 1e12, ratios, "o-", linewidth=2, markersize=8)
+plt.plot(np.array(my_in) / 1e12, ratios, "o-", linewidth=2, markersize=8)
 plt.xlabel("Frequency (THz)")
 plt.ylabel("Ratio E_wg / E_total")
 plt.title("Dependence of energy ratio on frequency (3D)")
